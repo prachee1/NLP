@@ -1,0 +1,118 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Aug  4 14:44:47 2017
+
+@author: pchat1
+"""
+
+import pandas as pd
+import numpy as np
+from pandas import Series, DataFrame
+from numpy.random import randn
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+dataset=pd.read_csv('/Users/pchat1/python_files/Deep Learning A-Z/Artificial_Neural_Networks/Churn_Modelling.csv')
+x=dataset.iloc[:,3:13].values
+y=dataset.iloc[:,13].values
+import keras
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import Dropout
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+labelencoder_x_1=LabelEncoder()
+x[:,1] = labelencoder_x_1.fit_transform(x[:,1])
+labelencoder_x_2=LabelEncoder()
+x[:,2] = labelencoder_x_1.fit_transform(x[:,2])
+onehotencoder = OneHotEncoder(categorical_features=[1])
+x=onehotencoder.fit_transform(x).toarray()
+x=x[:,1:]
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.2,random_state=0)
+sc=StandardScaler()
+x_train=sc.fit_transform(x_train)
+x_test=sc.transform(x_test)
+
+classifier=Sequential()
+classifier.add(Dense(units=6,kernel_initializer='uniform',activation='relu',input_dim=11))
+classifier.add(Dense(units=6,kernel_initializer='uniform',activation='relu'))
+classifier.add(Dense(units=1,kernel_initializer="uniform",activation='sigmoid'))
+classifier.compile(optimizer='adam',loss='binary_crossentropy',metrics=['accuracy'])
+classifier.fit(x_train,y_train,batch_size=10,epochs=100)
+
+y_pred=classifier.predict(x_test)
+plt.hist(y_pred,bins='auto',rug=True,rug_kws={"color":"b"},hist_kws={"color":"red"})
+sns.distplot(y_pred,kde=False,rug=True,hist=True,rug_kws={"color":"b"},hist_kws={"color":"red"})
+y_pred=(y_pred > 0.5)
+from sklearn.metrics import confusion_matrix
+cm=confusion_matrix(y_test,y_pred)
+
+new_prediction=classifier.predict(sc.transform(np.array([[0.0, 0, 600, 0, 40, 6000, 2, 1, 1, 50000]])))
+
+#evaluating the ANN
+from keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.model_selection import cross_val_score
+def build_classifier():
+    classifier=Sequential()
+    classifier.add(Dense(units=6,kernel_initializer='uniform',activation='relu',input_dim=11))
+    classifier.add(Dense(units=6,kernel_initializer='uniform',activation='relu'))
+    classifier.add(Dense(units=1,kernel_initializer="uniform",activation='sigmoid'))
+    classifier.compile(optimizer='adam',loss='binary_crossentropy',metrics=['accuracy'])
+    return classifier
+classifier  = KerasClassifier(build_fn = build_classifier,batch_size=10,epochs=100)
+accuracies = cross_val_score(estimator= classifier, X=x_train, y=y_train, groups=None, cv=10,n_jobs=1)
+mean=accuracies.mean()
+variance=accuracies.std()
+
+#improving ANN
+#dropout irregularites to reduce overfitting if needed (high variance)
+#classifier=Sequential()
+#classifier.add(Dense(units=6,kernel_initializer='uniform',activation='relu',input_dim=11))
+#classifier.add(Dropout(p=0.1))
+#classifier.add(Dense(units=6,kernel_initializer='uniform',activation='relu'))
+
+# parameter tuning
+from keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.model_selection import GridSearchCV
+def build_classifier():
+    classifier=Sequential()
+    classifier.add(Dense(units=6,kernel_initializer='uniform',activation='relu',input_dim=11))
+    classifier.add(Dense(units=6,kernel_initializer='uniform',activation='relu'))
+    classifier.add(Dense(units=1,kernel_initializer="uniform",activation='sigmoid'))
+    classifier.compile(optimizer='adam',loss='binary_crossentropy',metrics=['accuracy'])
+    return classifier
+classifier  = KerasClassifier(build_fn = build_classifier,)
+parameters = {'batch_size':[25,32], 'epochs'=[100,500]]}
+grid_search=GridSearchCV(estimator=classifier, param_grid=parameters, scoring='accuracy',CV=10)
+grid_search.fit(x_train,y_train)
+best_parameters=grid_search.best_params_
+best_accuracy=grid_search.best_score_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
